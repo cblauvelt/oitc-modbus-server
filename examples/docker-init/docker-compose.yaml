@@ -1,0 +1,11 @@
+version: "3"
+services:
+  modbus-server:
+    container_name: modbus-server
+    image: cblauvelt/modbus-server
+    restart: always
+    command: -f /server_config.json
+    ports:
+      - 502:502
+    volumes:
+      - ./server_config.json:/server_config.json:ro
