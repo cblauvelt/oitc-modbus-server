@@ -29,6 +29,12 @@ Step - 2 : Run the Modbus TCP Server
 docker run --rm -p 502:502 cblauvelt/modbus-server:latest
 ```
 
+Alternatively, you can run this using docker-compose
+
+```bash
+docker-compose -f examples/docker-init/docker-compose.yaml up
+```
+
 Step - 3 : Predefine registers
 
 The default configuration file is configured to initialize every register with a `0x0000`.
@@ -106,15 +112,17 @@ docker run --rm -p 502:502 -v ./server_config.json:/server_config.json oitc/modb
 # Docker compose
 
 ```yaml
-modbus-server:
-  container_name: modbus-server
-  image: oitc/modbus-server
-  restart: always
-  command: -f /server_config.json
-  ports:
-    - 502:502
-  volumes:
-    - ./server.json:/server_config.json:ro
+version: "3"
+services:
+  modbus-server:
+    container_name: modbus-server
+    image: cblauvelt/modbus-server
+    restart: always
+    command: -f /server_config.json
+    ports:
+      - 502:502
+    volumes:
+      - ./server_config.json:/server_config.json:ro
 ```
 
 # License
