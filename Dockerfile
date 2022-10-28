@@ -1,22 +1,33 @@
-FROM python:3.8-alpine
-LABEL maintainer="Michael Oberdorf IT-Consulting <info@oberdorf-itc.de>"
-LABEL site.local.vendor="Michael Oberdorf IT-Consulting"
-LABEL site.local.os.main="Linux"
-LABEL site.local.os.dist="Alpine"
-LABEL site.local.runtime.name="Python"
-LABEL site.local.runtime.version="3.8"
-LABEL site.local.program.name="Python Modbus TCP Server"
-LABEL site.local.program.version="1.1.2"
+# Build a virtualenv using the appropriate Debian release
+# * Install python3-venv for the built-in Python3 venv module (not installed by default)
+# * Install gcc libpython3-dev to compile C Python modules
+# * In the virtualenv: Update pip setuputils and wheel to support building new packages
+FROM debian:11-slim AS build
+# hadolint ignore=DL3008,DL3009
+RUN apt-get update && \
+    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel
 
-RUN addgroup -g 1000 -S pythonuser && \
-    adduser -u 1000 -S pythonuser -G pythonuser && \
-    mkdir -p /app && \
-    pip3 install pymodbus
-ADD --chown=root:root app/* /app/
+# Install dependencies:
+COPY requirements.txt /requirements.txt
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel
 
-USER pythonuser
-EXPOSE 502/tcp
+# Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
+FROM build AS build-venv
+COPY requirements.txt /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
+
+# Now setup distroless and run the application:
+# hadolint ignore=DL3006
+FROM gcr.io/distroless/python3
+
+COPY --from=build-venv /venv /venv
+COPY ./app /app/
+WORKDIR /app
+
 
 # Start Server
-ENTRYPOINT ["python", "-u", "/app/modbus_server.py"]
+ENTRYPOINT ["/venv/bin/python3", "/app/modbus_server.py"]
 CMD ["-f", "/app/modbus_server.json"]
