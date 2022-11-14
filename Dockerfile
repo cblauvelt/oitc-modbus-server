@@ -20,8 +20,8 @@ COPY requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
 
 # Now setup distroless and run the application:
-# hadolint ignore=DL3006
-FROM gcr.io/distroless/python3
+# hadolint ignore=DL3006,DL3007
+FROM gcr.io/distroless/python3:latest-${TARGETARCH}
 
 COPY --from=build-venv /venv /venv
 COPY ./app /app/
